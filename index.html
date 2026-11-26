@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Étagère à habits – suivi du projet</title>
+<style>
+:root{
+  --bg:#faf8f5; --card:#ffffff; --ink:#2b2622; --mute:#7a7068; --line:#e7e0d8;
+  --wood:#b9854e; --wood2:#8f6334; --ok:#4c9a63; --accent:#d98a3d;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#1c1917; --card:#26221f; --ink:#f1ebe4; --mute:#a39a91; --line:#3a342f; --wood:#d39a5e; --wood2:#e9b77c; --ok:#6cc189; --accent:#f0a65a;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:16px 14px 60px}
+main{max-width:720px;margin:0 auto}
+h1{font-size:1.45rem;margin:4px 0 2px}
+.sub{color:var(--mute);margin:0 0 16px;font-size:.92rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 14px;margin-bottom:14px}
+.big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pct{font-size:2.4rem;font-weight:700;color:var(--wood2);line-height:1}
+.cnt{color:var(--mute)}
+.bar{height:12px;border-radius:8px;background:var(--line);overflow:hidden;margin:10px 0 4px}
+.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--wood),var(--accent));transition:width .4s}
+.next{margin-top:10px;font-size:.95rem}
+.next b{color:var(--wood2)}
+svg{width:100%;height:auto;display:block}
+.axis{stroke:var(--line);stroke-width:1}
+.lbl{fill:var(--mute);font-size:11px}
+.curve{fill:none;stroke:var(--wood);stroke-width:2.5;stroke-linejoin:round}
+.area{fill:var(--wood);opacity:.13}
+.dot{fill:var(--accent)}
+h2{font-size:1.02rem;margin:0 0 4px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+h2 small{color:var(--mute);font-weight:500}
+.mini{height:5px;border-radius:4px;background:var(--line);overflow:hidden;margin-bottom:6px}
+.mini>i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+.task{display:flex;gap:12px;align-items:flex-start;padding:10px 4px;border-top:1px solid var(--line);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.task:first-of-type{border-top:0}
+.task input{appearance:none;-webkit-appearance:none;width:26px;height:26px;border:2px solid var(--mute);border-radius:8px;flex:none;margin:1px 0 0;cursor:pointer;display:grid;place-content:center;background:transparent}
+.task input:checked{background:var(--ok);border-color:var(--ok)}
+.task input:checked::after{content:"";width:6px;height:12px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.task .t{flex:1;min-width:0}
+.task .n{display:block;color:var(--mute);font-size:.86rem;margin-top:1px}
+.task.done .m{text-decoration:line-through;color:var(--mute)}
+.task .d{color:var(--mute);font-size:.78rem;white-space:nowrap}
+.task .x{border:0;background:none;color:var(--mute);font-size:1.1rem;cursor:pointer;padding:0 4px}
+.add{display:flex;gap:8px;margin-top:8px}
+.add input[type=text]{flex:1;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+button.b{padding:10px 14px;border-radius:10px;border:0;background:var(--wood);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+button.ghost{background:none;color:var(--mute);border:1px solid var(--line);font-weight:500}
+.foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px;color:var(--mute);font-size:.82rem}
+.hint{color:var(--mute);font-size:.82rem;margin:8px 0 0}
+</style>
+</head>
+<body>
+<main>
+  <h1>🪵 Étagère à habits</h1>
+  <p class="sub">4 étages · cadres 70 × 35 cm · montants de 140 cm · LED adressables</p>
+
+  <section class="card">
+    <div class="big"><span class="pct" id="pct">0%</span><span class="cnt" id="cnt"></span></div>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="next" id="next"></div>
+  </section>
+
+  <section class="card">
+    <h2>Courbe de progression <small id="span"></small></h2>
+    <svg id="chart" viewBox="0 0 640 220" role="img" aria-label="Courbe de progression du projet"></svg>
+    <p class="hint">Chaque case cochée fait monter la courbe à la date du jour.</p>
+  </section>
+
+  <div id="phases"></div>
+
+  <section class="card">
+    <h2>Ajouter une tâche</h2>
+    <div class="add">
+      <input type="text" id="newt" placeholder="Ex. : poncer les montants" maxlength="120">
+      <button class="b" id="addb">Ajouter</button>
+    </div>
+    <p class="hint">Elle sera ajoutée dans la dernière section « Perso ».</p>
+  </section>
+
+  <div class="foot">
+    <span>Les données sont gardées dans ce navigateur (téléphone ou PC séparément).</span>
+    <button class="b ghost" id="reset">Tout remettre à zéro</button>
+  </div>
+</main>
+
+<script>
+(function(){
+var KEY="etagere-habits-v1";
+var PHASES=[
+ {id:"mat",name:"1 · Matériel",tasks:[
+  ["lattes","Vérifier le stock : 13 lattes d'ancien lit (10 nécessaires)","Montants 4 × 140 cm + 4 cadres (2 × 70 cm et 2 × 35 cm chacun)"],
+  ["vis","Acheter les vis, rondelles et équerres d'angle métal (35–70 mm)","4 équerres d'angle par cadre, soit 16 au total"],
+  ["tablars","Commander les 4 tablars 70 × 35 cm chez Jumbo Bienne","Coupe sur mesure, bords chanfreinés si possible"],
+  ["ledmat","Commander bande LED adressable, alim 5 V et ESP32","Prévoir de quoi alimenter chaque étage"]
+ ]},
+ {id:"imp",name:"2 · Impression 3D",tasks:[
+  ["eq2","Imprimer les équerres des cadres du milieu (8 pièces)","A1, buse 0,8 mm, PETG, orientation sans supports"],
+  ["eq4","Vérifier qu'il y a 16 équerres au total","4 par étage, 4 étages"]
+ ]},
+ {id:"cou",name:"3 · Coupes",tasks:[
+  ["mont","Couper les 4 montants à 140 cm",""],
+  ["c1","Couper les lattes du cadre de l'étage 2 (2 × 70, 2 × 35 cm)",""],
+  ["c2","Couper les lattes du cadre de l'étage 3 (2 × 70, 2 × 35 cm)",""]
+ ]},
+ {id:"mon",name:"4 · Montage",tasks:[
+  ["fbas","Monter le cadre du bas (étage 1)","Fait"],
+  ["fhaut","Monter le cadre du haut (étage 4)","Fait"],
+  ["marq","Marquer les hauteurs sur les 4 montants : 28, 60, 92 et 124 cm","Serrer les 4 montants côte à côte et tracer d'un coup"],
+  ["fix14","Fixer les cadres du bas et du haut sur les montants","Montants sur le côté court (35 cm)"],
+  ["diag","Vérifier les diagonales : elles doivent être égales",""],
+  ["eqc","Poser les équerres d'angle métal dans les coins des cadres",""],
+  ["f2","Monter le cadre de l'étage 2 (60 cm)",""],
+  ["f3","Monter le cadre de l'étage 3 (92 cm)",""],
+  ["mur","Fixer l'étagère au mur (patte antibasculement)","En haut d'un montant arrière"]
+ ]},
+ {id:"tab",name:"5 · Tablars",tasks:[
+  ["tabr","Récupérer les tablars chez Jumbo",""],
+  ["tabp","Poser et visser les 4 tablars",""]
+ ]},
+ {id:"led",name:"6 · LED",tasks:[
+  ["led1","Coller les 4 bandes sous le bord avant des tablars","Nettoyer le bois avant de coller"],
+  ["led2","Câbler en zigzag : étage 1 → 2 → 3 → 4","Montant avant gauche et droit en alternance, 5 V + GND + data"],
+  ["led3","Injecter le 5 V à chaque tronçon et relier tous les GND",""],
+  ["led4","Installer WLED sur l'ESP32 et régler le nombre de LED",""],
+  ["led5","Créer 4 segments (inverser ceux qui vont de droite à gauche)",""],
+  ["led6","Régler le blanc chaud et enregistrer un preset d'ambiance",""]
+ ]},
+ {id:"fin",name:"7 · Finition",tasks:[
+  ["fin1","Contrôle de stabilité avec quelques habits",""],
+  ["fin2","Ranger les habits et profiter 🎉",""]
+ ]}
+];
+var PRE={fbas:1,fhaut:1};
+
+var mem=null;
+function load(){try{var s=localStorage.getItem(KEY);if(s)return JSON.parse(s)}catch(e){}return mem;}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}mem=S;}
+function fresh(){var now=Date.now(),d={};for(var k in PRE)d[k]=now;return{start:now,done:d,custom:[]};}
+var S=load()||fresh();
+if(!S.done)S.done={};if(!S.custom)S.custom=[];if(!S.start)S.start=Date.now();
+
+function allTasks(){
+  var a=[];PHASES.forEach(function(p){p.tasks.forEach(function(t){a.push({id:t[0],txt:t[1],note:t[2],phase:p.id});});});
+  S.custom.forEach(function(c){a.push({id:c.id,txt:c.txt,note:"",phase:"perso",custom:true});});
+  return a;
+}
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+function fmt(ts){return new Date(ts).toLocaleDateString("fr-CH",{day:"numeric",month:"short"});}
+
+function render(){
+  var tasks=allTasks(),total=tasks.length,done=tasks.filter(function(t){return S.done[t.id]}).length;
+  var pct=total?Math.round(done/total*100):0;
+  document.getElementById("pct").textContent=pct+"%";
+  document.getElementById("cnt").textContent=done+" tâche"+(done>1?"s":"")+" sur "+total;
+  document.getElementById("bar").style.width=pct+"%";
+  var nx=tasks.filter(function(t){return !S.done[t.id]})[0];
+  var nxe=document.getElementById("next");nxe.textContent="";
+  if(nx){nxe.appendChild(document.createTextNode("Prochaine étape : "));nxe.appendChild(el("b",null,nx.txt));}
+  else nxe.textContent="Projet terminé, bravo ! 🎉";
+
+  var box=document.getElementById("phases");box.textContent="";
+  var groups=PHASES.map(function(p){return{id:p.id,name:p.name}});
+  if(S.custom.length)groups.push({id:"perso",name:"8 · Perso"});
+  groups.forEach(function(g){
+    var ts=tasks.filter(function(t){return t.phase===g.id});
+    var dn=ts.filter(function(t){return S.done[t.id]}).length;
+    var card=el("section","card");
+    var h=el("h2");h.appendChild(el("span",null,g.name));h.appendChild(el("small",null,dn+"/"+ts.length));
+    card.appendChild(h);
+    var mini=el("div","mini"),mi=el("i");mi.style.width=(ts.length?dn/ts.length*100:0)+"%";mini.appendChild(mi);card.appendChild(mini);
+    ts.forEach(function(t){
+      var lab=el("label","task"+(S.done[t.id]?" done":""));
+      var cb=document.createElement("input");cb.type="checkbox";cb.checked=!!S.done[t.id];
+      cb.addEventListener("change",function(){
+        if(cb.checked)S.done[t.id]=Date.now();else delete S.done[t.id];
+        save();render();
+      });
+      lab.appendChild(cb);
+      var tt=el("span","t");tt.appendChild(el("span","m",t.txt));
+      if(t.note)tt.appendChild(el("span","n",t.note));
+      lab.appendChild(tt);
+      if(S.done[t.id])lab.appendChild(el("span","d",fmt(S.done[t.id])));
+      if(t.custom){
+        var x=el("button","x","✕");x.type="button";x.title="Supprimer";
+        x.addEventListener("click",function(ev){ev.preventDefault();
+          S.custom=S.custom.filter(function(c){return c.id!==t.id});delete S.done[t.id];save();render();});
+        lab.appendChild(x);
+      }
+      card.appendChild(lab);
+    });
+    box.appendChild(card);
+  });
+  chart(tasks);
+}
+
+function chart(tasks){
+  var svg=document.getElementById("chart");while(svg.firstChild)svg.removeChild(svg.firstChild);
+  var NS="http://www.w3.org/2000/svg";
+  function mk(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
+  var W=640,H=220,L=38,R=14,T=12,B=28,total=tasks.length||1;
+  var ev=tasks.filter(function(t){return S.done[t.id]}).map(function(t){return S.done[t.id]}).sort(function(a,b){return a-b});
+  var t0=Math.min(S.start,ev.length?ev[0]:S.start),now=Date.now(),DAY=864e5;
+  var t1=Math.max(now,t0+DAY*7);
+  function X(t){return L+(t-t0)/(t1-t0)*(W-L-R)}
+  function Y(p){return T+(1-p/100)*(H-T-B)}
+  [0,25,50,75,100].forEach(function(p){
+    svg.appendChild(mk("line",{x1:L,x2:W-R,y1:Y(p),y2:Y(p),"class":"axis"}));
+    var tx=mk("text",{x:L-6,y:Y(p)+4,"text-anchor":"end","class":"lbl"});tx.textContent=p+"%";svg.appendChild(tx);
+  });
+  for(var i=0;i<=3;i++){
+    var tt=t0+(t1-t0)*i/3,tx=mk("text",{x:X(tt),y:H-8,"text-anchor":i==0?"start":i==3?"end":"middle","class":"lbl"});
+    tx.textContent=fmt(tt);svg.appendChild(tx);
+  }
+  var pts=[[t0,0]];
+  ev.forEach(function(t,i){var p=(i+1)/total*100;pts.push([t,pts[pts.length-1][1]]);pts.push([t,p]);});
+  var last=pts[pts.length-1][1];pts.push([now,last]);
+  var d=pts.map(function(p,i){return(i?"L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1)}).join(" ");
+  svg.appendChild(mk("path",{d:d+" L"+X(now).toFixed(1)+" "+Y(0)+" L"+X(t0).toFixed(1)+" "+Y(0)+" Z","class":"area"}));
+  svg.appendChild(mk("path",{d:d,"class":"curve"}));
+  svg.appendChild(mk("circle",{cx:X(now),cy:Y(last),r:5,"class":"dot"}));
+  document.getElementById("span").textContent="depuis le "+fmt(t0);
+}
+
+document.getElementById("addb").addEventListener("click",add);
+document.getElementById("newt").addEventListener("keydown",function(e){if(e.key==="Enter")add()});
+function add(){
+  var i=document.getElementById("newt"),v=i.value.trim();if(!v)return;
+  S.custom.push({id:"c"+Date.now(),txt:v});i.value="";save();render();
+}
+var armed=false;
+document.getElementById("reset").addEventListener("click",function(){
+  var b=this;
+  if(!armed){armed=true;b.textContent="Confirmer : tout effacer ?";setTimeout(function(){armed=false;b.textContent="Tout remettre à zéro"},4000);return;}
+  armed=false;b.textContent="Tout remettre à zéro";S=fresh();save();render();
+});
+render();
+})();
+</script>
+</body>
+</html>
